@@ -1,0 +1,33 @@
+--- #YAML:1.0
+name:               CatalystX-CrudGenerator
+version:            0.01
+abstract:           *BETA* generate crud (controller+templates) from schema input
+author:
+    - Hernan Lopes (hernanlopes@gmail.com)
+license:            unknown
+distribution_type:  module
+configure_requires:
+    ExtUtils::MakeMaker:  0
+build_requires:
+    ExtUtils::MakeMaker:  0
+requires:
+    Carp:                 0
+    Data::Dumper:         0
+    DBD::SQLite:          0
+    DBIx::Class:          0
+    DBIx::Class::Schema:  0
+    Dir::Self:            0
+    FindBin:              0
+    Getopt::Long:         0
+    Moose:                0
+    SQL::Translator:      0
+    Template::Toolkit::Simple:  0
+    Test::Simple:         0.44
+no_index:
+    directory:
+        - t
+        - inc
+generated_by:       ExtUtils::MakeMaker version 6.56
+meta-spec:
+    url:      http://module-build.sourceforge.net/META-spec-v1.4.html
+    version:  1.4

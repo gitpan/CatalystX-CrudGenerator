@@ -1,0 +1,352 @@
+package <% app_name %>::Controller::<% IF controller_base != '' ; controller_base _ '::' ; END ; %><% model %>;
+use Moose;
+use namespace::autoclean;
+use HTML::FormHandler::Model::DBIC;
+
+BEGIN {extends 'Catalyst::Controller'; }
+
+=head1 NAMES
+
+<% app_name %>::Controller::<% model %> - Catalyst Controller
+
+=head1 DESCRIPTION
+
+Catalyst Controller.
+
+=head1 METHODS
+
+=cut
+
+=head2 index
+
+=cut
+
+__PACKAGE__->config(
+    schema_model => '<% schema %>::<% model %>',
+    current_view => '<% current_view %>' ,
+    package_controller => '<% IF controller_base != '' ; controller_base _ '::' ; END ; %><% model %>',
+    rows_limit => <% rows_limit %>,
+);
+
+sub base :Chained('/') :PathPart('crud/<% model %>') :CaptureArgs(0) {
+    my ( $self, $c ) = @_; 
+} 
+
+sub remove :Chained( 'base' ) :PathPart( 'remove' )  {
+    my ( $self, $c, @pks ) = @_; 
+    my $item  = $c->model(
+        __PACKAGE__->config->{ schema_model }
+    )->find( @pks, { key => 'primary' ,} );
+    my $config = __PACKAGE__->config;
+    #validate...
+    $c->stash(
+        config => __PACKAGE__->config,
+    ); 
+    if ( $c->req->method eq 'POST' and defined $item ) {
+        $item->delete();
+        $c->stash(
+            current_view => __PACKAGE__->config->{ current_view },
+            template => \'removed.',
+        ); 
+    } else {
+        my $pks_str = "'" . join '/', @pks . "'";
+        my $html = <<HTML_REMOVE
+        <div class="clear">
+            <div class="clear">
+                Confirm Remove ?
+            </div>
+            <div class="clear">
+                <form method='POST'>
+                    <button type="submit" href="[% c.uri_for( c.controller( config.package_controller ).action_for( 'remove' ) , $pks_str ) %]" class="button negative">
+                      	Remove
+                    </button>
+                </form>
+            </div>
+        </div>
+HTML_REMOVE
+;
+        $c->stash(
+            template => \$html,
+            current_view => __PACKAGE__->config->{ current_view },
+        ); 
+    }
+}
+
+sub view :Chained( 'base' ) :PathPart( 'view' ) {
+    my ( $self, $c, @pks ) = @_;
+    my $item = $c->model(
+      __PACKAGE__->config->{ schema_model } ,
+    )->find( @pks, { key => 'primary' } );
+    $c->stash(
+      item => $item,
+    ); 
+    my $html = $c->forward( 'template_view' );
+    $c->stash(
+        template => \$html,
+        current_view => __PACKAGE__->config->{ current_view },
+    ); 
+}
+
+sub template_view :Private {
+  my ( $self, $c ) = @_; 
+  $c->stash(
+      config => __PACKAGE__->config,
+  ); 
+  my $html = <<HTML
+  <div class="span-20 last">
+    <% FOREACH col IN columns %>
+      <div class="span-14 clear">
+          <label class="clear"> <% col %> </label>
+          <div class="span-14 clear">
+              [% <% 'item.' _ col %> %]
+          </div>
+      </div>
+    <% END %>
+  </div>
+HTML
+;
+  return $html;
+}
+
+sub edit :Chained( 'base' ) :PathPart( 'edit' ) {
+    my ( $self, $c, @pks ) = @_;
+    my $item; 
+
+    if ( ! @pks ) {
+      $item = $c->model(
+        __PACKAGE__->config->{ schema_model } ,
+      )->new_result( {} );
+    } else { 
+      $item = $c->model(
+        __PACKAGE__->config->{ schema_model } ,
+      )->find( @pks, { key => 'primary' } );
+    }
+
+    my $form = HTML::FormHandler::Model::DBIC->new( 
+      item => $item, 
+      field_list =>
+        $c->forward( 'field_list' )
+      );
+    if ($c->req->method eq 'POST') {
+      $form->process(
+        item => $item, 
+        params => $c->req->params,
+      );
+    }
+    $c->stash(
+      form => $form,
+      current_view => __PACKAGE__->config->{ current_view } ,
+      template => \$form->render,
+    );
+    return unless $form->validated;
+    $c->stash( 
+      template => \'Information saved!',
+    );
+}
+
+sub field_list :Private {
+  my ( $self, $c ) = @_; 
+  return [
+      display0 => {
+          type => 'Display',
+          html => '<h1><% model %></h1>',
+      },
+      <% FOREACH col IN columns %><% col %> => {
+          type => 'Text',   #Text, TextArea, Private, Display, etc
+          label => '<% col %>',  
+          required => 1,
+          required_message => 'Required' ,
+          css_class => 'clear',
+        },
+
+      <% END %>
+      submit => {
+        type => 'Submit', 
+        value => 'Save',
+        css_class => 'clear',
+      },
+    ];
+}
+
+sub list :Chained( 'base' ) :PathPart( 'list' ) :Args(0) {
+    my ( $self, $c ) = @_; 
+    my $sortable_cols = {
+<% FOREACH col IN columns %>
+            '<% col %>' => 1,
+<% END %>
+    };
+    my $result = $c->model(  
+        __PACKAGE__->config->{ schema_model }
+    )->search( {
+    } , { 
+      columns => [ qw/<% FOREACH col IN columns ; col ; IF ! loop.last ; ' ' ; END ; END %>/ ],
+        rows => __PACKAGE__->config->{ rows_limit },
+        ( defined $c->req->params->{page} ) ? 
+        ( page => int( $c->req->params->{page} ) ) : ( page => 1 ),
+        
+        ( defined $c->req->params->{sort_by} and $sortable_cols->{ $c->req->params->{sort_by} } == 1 )
+        ? ( 
+          ( ! $c->req->params->{ sort_order } ) ? ( #if sort_order
+            order_by => { -asc => $c->req->params->{ sort_by } },
+          ) : (
+            order_by => { lc( '-' . sub { return 'asc' if $c->req->params->{ sort_order } =~ m/asc/i ; return 'desc'; }->() )  => $c->req->params->{ sort_by } },
+          ) ,
+        ) : (),
+    } );
+
+    my $pager = $result->pager;
+    $c->stash(
+        config => __PACKAGE__->config,
+        result => $result,
+        results => [$result->all],
+        buttons => [
+                {
+                label => 'New',
+#               icon => '/static/images/iconpack/house_go.png',
+                class => 'thickbox',
+                href => $c->uri_for( $c->controller(__PACKAGE__->config->{ package_controller })->action_for('edit'), { KeepThis => 'true' , TB_iframe => 'true' , height => '400' , width => '800', callback => 'reload_page', } ),
+                },
+            ],
+        pager => {
+            ( defined $pager->previous_page ) ? (
+            previous => {
+                href => $c->req->uri_with( { page => $pager->previous_page } ),
+                label => $pager->previous_page,
+                }
+            ) : (),
+            current => {
+                label => $pager->current_page,
+                }
+            ,
+            ( defined $pager->next_page ) ? (
+            next => {
+                href => $c->req->uri_with( { page => $pager->next_page} ),
+                label => $pager->next_page,
+                }
+            ) : (),
+        last_page => $pager->last_page,
+        total_entries => $pager->total_entries,
+        },
+    ); 
+    my $html = $c->forward( 'listar' );
+    $c->stash( 
+      template => \$html,
+      current_view => __PACKAGE__->config->{ current_view } ,
+    ); 
+}
+
+
+sub listar :Private {
+    my ( $self, $c ) = @_; 
+    my $html = <<HTML_LIST
+    <% SET item_index = ''; 
+       SET pks = '';
+       FOREACH pk IN primary_columns %>
+        <% item_index = item_index _ '[% item.' _ pk _ ' %]' %>
+        <% pks = pks _ 'item.' _ pk %>
+        <% IF ! loop.last %>
+          <% item_index = item_index _ '/' %>
+          <% pks = pks _ ',' %>
+        <% END %>
+    <% END %>
+    <div class="span-16 last">
+        [% FOREACH btn IN buttons %]
+            <a href="[% btn.href %]" class="button negative">
+              <img src="[% btn.icon %]">[% btn.label %]
+            </a>
+        [% END %]
+        <table>
+        <tr>
+          <td>
+            [% FOREACH col IN [
+<% FOREACH col IN columns %>
+                { 
+                    column => '<% col %>', 
+                    label => '<% col %>',
+                }, 
+<% END %>
+            ];
+            IF ( c.req.params.sort_by == col.column ) ; #IF IS SORTED BY THIS COL %]
+                [% IF ( c.req.params.sort_order == 'ASC' ) ; %]
+                  <a href="[% c.req.uri_with( { sort_by => col.column , sort_order => 'DESC' } ) %]">
+                     [% col.label %] &#9660;                  </a>
+                [% ELSE ; %]
+                  <a href="[% c.req.uri_with( { sort_by => col.column , sort_order => 'ASC' } ) %]">
+                      [% col.label %] &#9650;                  </a>
+                [% END ; %]
+              [% ELSE ; %]
+                <a href="[% c.req.uri_with( { sort_by => col.column , sort_order => 'ASC' } ) %]">
+                    [% col.label %] &#9650;                </a>
+              [% END ; 
+              END; %]
+          </td>
+        </tr>
+        [% FOREACH item IN results %]
+        <tr>
+            <td>
+                   <a href="/crud/<% model %>/view/<% item_index %>">Open</a>,
+            </td>
+<% FOREACH col IN columns %>
+            <td>[% item.<% col %> %]</td>
+<% END %>
+          <td>
+
+          <!-- BTN EDIT -->
+            <a href="[% c.uri_for( c.controller( config.package_controller ).action_for( 'edit' ), <% pks %> ) %]" class="button negative">
+              <img src="/static/images/iconpack/application_edit.png">Modify
+            </a>
+
+          <!-- BTN REMOVE -->
+            <a href="[% c.uri_for( c.controller( config.package_controller ).action_for( 'remove' ), <% pks %> ) %]" class="button negative">
+              <img src="/static/images/iconpack/delete.png">Remove
+            </a>
+
+          </td>
+        </tr>
+        [% END %]
+        </table>
+<!-- pagination begin -->
+        <div class="pagination-space">
+            <div class="span-6 height35 paddingTop5 paddingBottom5">
+            Page:
+                [% IF pager.previous != '' %]
+                    <a href="[% pager.previous.href %]">[% pager.previous.label %]</a>
+                [% END %]
+                  
+                [% IF pager.current != '' %]
+                    <a class="current">
+                      [% pager.current.label %]
+                    </a>
+                [% END %]
+               
+                [% IF pager.next != '' %]
+                    <a href="[% pager.next.href %]">[% pager.next.label %]</a>
+                [% END %]
+            </div>
+            <div class="span-6 last height35 paddingTop5 paddingBottom5 quiet">
+              Total <strong class="loud">[% pager.last_page %]</strong> pages, <strong class="loud">[% pager.total_entries %]</strong> items.
+            </div>
+        </div> 
+<!-- pagination end -->
+    </div>
+HTML_LIST
+;
+    return $html;
+}
+
+
+=head1 AUTHOR
+
+,,,
+
+=head1 LICENSE
+
+This library is free software. You can redistribute it and/or modify
+it under the same terms as Perl itself.
+
+=cut
+
+__PACKAGE__->meta->make_immutable;
+
+1;
+

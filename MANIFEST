@@ -1,0 +1,17 @@
+MANIFEST
+README
+LICENSE
+Todo
+Changes
+Makefile.PL
+scripts/crudgenerator.pl
+lib/CatalystX/CrudGenerator.pm
+lib/CatalystX/template/crudgenerator_template.tt2
+t/001_load.t
+t/005_deply_schema.t
+t/010_generate_crud.t
+t/db_crudgeneratortest/lib/DB.pm
+t/db_crudgeneratortest/lib/DB/Result/Company.pm
+t/db_crudgeneratortest/lib/DB/Result/Employee.pm
+t/db_crudgeneratortest/lib/DB/Result/WorkArea.pm
+META.yml                                 Module meta-data (added by MakeMaker)
