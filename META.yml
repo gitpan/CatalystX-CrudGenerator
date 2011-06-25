@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               CatalystX-CrudGenerator
-version:            0.01
+version:            0.02
 abstract:           *BETA* generate crud (controller+templates) from schema input
 author:
     - Hernan Lopes (hernanlopes@gmail.com)

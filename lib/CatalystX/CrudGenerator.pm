@@ -6,7 +6,7 @@ use Carp;
 use Dir::Self; # enables __DIR__ (module self dir)
 use lib; 
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 has schema => (
     is => 'rw',
@@ -132,31 +132,37 @@ sub generate_crud {
     --models              one or more model separated by comma
     --schema              the schema name
     --rows_limit          limit sql query rows on listing
-    --current_view        define the which view should be used
-    --controller_base     define the which view should be used
+    --current_view        define which view should be used
+    --controller_base     set controller base,ie...Controller::Base
     --lib_dir             points to DBSchema/myapp lib dirs, ie:
+                          /sites/MyAPP/lib   
     --template_file       crudgenerator_template.tt2
     --output_dir          default is local dir (the dir you are in)
+    --app_name            application name ie. MyAPP::Name::Cool
     
     ~\$ crudgenerator.pl --help
 
-    ~\$ crudgenerator.pl --db_connect=dbi:Pg:dbname=MyDataBase \\ 
-    ~\$   --db_user=joe \\                                #OPTIONAL
-    ~\$   --db_pass=mypass \\                             #OPTIONAL
-    ~\$   --models=User,Client,Product \\                 #REQUIRED
-    ~\$   --schema=DB \\                                  #REQUIRED 
-    ~\$   --rows_limit=15 \\                              #OPTIONAL
-    ~\$   --current_view=WebsiteStandardView \\           #REQUIRED
-    ~\$   --controller_base=Website::Public \\            #REQUIRED
-    ~\$   --lib_dir=/websites/catalyst/MyAPP/lib \\       #REQUIRED
-    ~\$   --template_file=crudgenerator_template.tt2 \\   #OPTIONAL
-    ~\$   --output_dir=.                                  #OPTIONAL
+    ~\$  crudgenerator.pl 
+    ~\$    --app_name=MyAPP::Name::Cool \                  #REQUIRED
+    ~\$    --db_connect=dbi:Pg:dbname=MyDataBase \         #REQUIRED
+    ~\$    --db_user=joe \                                 #OPTIONAL
+    ~\$    --db_pass=mypass \                              #OPTIONAL
+    ~\$    --models=User,Client,Product \                  #REQUIRED
+    ~\$    --schema=DB \                                   #REQUIRED 
+    ~\$    --rows_limit=15 \                               #OPTIONAL
+    ~\$    --current_view=WebsiteStandardView \            #REQUIRED
+    ~\$    --controller_base=Website::Public \             #REQUIRED
+    ~\$    --lib_dir=/websites/catalyst/MyAPP/lib \        #REQUIRED
+    ~\$    --template_file=crudgenerator_template.tt2 \    #OPTIONAL
+    ~\$    --output_dir=.                                  #OPTIONAL
 
     to preview: http://localhost:3000/crud/* 
 
 =head1 DESCRIPTION
 
-    CatalystX::CrudGenerator will attempt to generate crud template & controllers for your model.
+    CatalystX::CrudGenerator will attempt to generate crud,
+    template & controllers for your model.
+
     The ideal for CatalystX::CrudGenerator:
       - Be simple, meaning: just output me a Controller.pm
       - Allow custom template, skin sharing, templates with js widgets etc.

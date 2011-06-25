@@ -62,11 +62,12 @@ if ( $show_help == 1 ) {
 --schema              the schema name
 --rows_limit          limit sql query rows on listing
 --current_view        define the which view should be used
---controller_base     define the which view should be used
+--controller_base     set controller base,ie...Controller::Base
 --lib_dir             points to DBSchema/myapp lib dirs, ie:
                       /sites/MyAPP/lib   
 --template_file       crudgenerator_template.tt2
 --output_dir          output directory ie. /sites/my_app/
+--app_name            application name ie. MyAPP::Name::Cool
 
 TEXTHELP
     print $help;
